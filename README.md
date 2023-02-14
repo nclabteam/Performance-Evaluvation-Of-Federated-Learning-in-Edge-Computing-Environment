@@ -2,8 +2,8 @@
 
 This code is developed to run Federated Learning application on Kubernetes version 1.21.0 and KubeEdge 1.10.0
 
-* Step 1: Install Kubenertes/KubeEdge on cloud node and install KubeEdge on edge node
-Follow 2 Tutorial files: 
+* Step 1: Follow these two tutorial files to install Docker, Kubernets, KubeEdge and setup Federated Learning application in cloud node and edge node: TUTORIAL ON SETUP KUBEEDGE ENVIRONMENT ON CLOUD AND EDGE-1.pdf
+
 * Step 2: Install CloudStream/EdgeStream on cloud node and edge node
 * Step 3: Build docker file:
 + fashion-mnist-aggregator.Dockerfile
