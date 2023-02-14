@@ -1,0 +1,2 @@
+sudo docker build -f fashion-mnist-aggregator.Dockerfile -t flower/fashion-mnist-aggregator:v1.0.8 --label FL_project=federated-learning/fashion-mnist-cloud_v1.0.8 ..
+sudo docker build -f fashion-mnist-client.Dockerfile -t flower/fashion-mnist-client:v1.0.8 --label FL_project=federated-learning/fashion-mnist-client_v1.0.8 ..

@@ -1,0 +1,301 @@
+# ####EDGE 1 - POD#### 
+# apiVersion: v1
+# kind: Pod
+# metadata:
+    # name: fashion-mnist-edge1
+# spec:
+    # nodeName: edge1
+    # containers:
+      # - image: kubeedge/fashion-mnist-client:v1.0.0
+        # name: federated-learning-client
+        # args: ["--partition=0", "--clients=1000" , "--server_address=192.168.27.128:8888"]
+    # hostNetwork: true
+    # dnsPolicy: Default
+    # restartPolicy: Never
+
+# ---
+# ###EDGE 2 - POD####
+# apiVersion: v1
+# kind: Pod
+# metadata:
+    # name: fashion-mnist-edge2
+# spec:
+    # nodeName: edge2
+    # containers:
+      # - image: kubeedge/fashion-mnist-client:v1.0.0
+        # name: federated-learning-client
+        # args: ["--partition=2000", "--clients=4000" , "--server_address=192.168.27.128:8888"]
+    # hostNetwork: true
+    # dnsPolicy: Default
+    # restartPolicy: Never
+# ---
+#EDGE1 -  DEPLOYMENT####
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata: 
+    # name: fashion-mnist-edge1
+    # labels:
+        # app: federated-learning-client
+# spec:  
+    # selector:
+        # matchLabels:
+            # app: federated-learning-client
+    # replicas: 1
+    # template:
+        # metadata:
+            # labels:
+                # app: federated-learning-client
+        # spec: 
+            # nodeName: edge1
+            # containers:
+            # - name: federated-learning-client            
+              # image: kubeedge/fashion-mnist-client:v1.0.0
+              # resources:
+                # requests:
+                    # memory: "1Gi"
+                    # cpu: "1"
+                # limits:
+                    # memory: "2Gi"
+                    # cpu: "4"
+              # args: ["--partition=0", "--clients=60000" , "--server_address=192.168.27.128:8888"]
+            # hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            # dnsPolicy: Default
+# ---
+# ##EDGE2 - DEPLOYMENT####
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata: 
+    # name: fashion-mnist-edge2
+    # labels:
+        # app: federated-learning-client
+# spec:  
+    # selector:
+        # matchLabels:
+            # app: federated-learning-client
+    # replicas: 1
+    # template:
+        # metadata:
+            # labels:
+                # app: federated-learning-client
+        # spec: 
+            # nodeName: edge2
+            # containers:
+            # - name: federated-learning-client            
+              # image: kubeedge/fashion-mnist-client:v1.0.0 
+              # resources:
+                # requests:
+                    # memory: "1Gi"
+                    # cpu: "1" 
+                # limits:
+                    # memory: "2Gi"
+                    # cpu: "2"
+              # args: ["--partition=0", "--clients=60000" , "--server_address=192.168.27.128:8888"]
+            # hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            # dnsPolicy: Default
+# ---
+##EDGE1 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: 
+    name: fashion-mnist-edge1
+    labels:
+        app: federated-learning-client
+spec:  
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"        
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec: 
+            terminationGracePeriodSeconds: 10
+            nodeName: edge1
+            containers:
+            - name: federated-learning-client            
+              image: kubeedge/fashion-mnist-client:v1.0.0 
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "1" 
+                limits: 
+                    memory: "2Gi"
+                    cpu: "4"
+              args: ["--partition=15000", "--clients=30000" , "--server_address=192.168.27.128:8888"]
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+---
+##EDGE2 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: 
+    name: fashion-mnist-edge2
+    labels:
+        app: federated-learning-client
+spec:  
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"        
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec: 
+            terminationGracePeriodSeconds: 10
+            nodeName: edge2
+            containers:
+            - name: federated-learning-client            
+              image: kubeedge/fashion-mnist-client:v1.0.0 
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "1" 
+                limits: 
+                    memory: "2Gi"
+                    cpu: "2"
+              args: ["--partition=0", "--clients=15000" , "--server_address=192.168.27.128:8888"]
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+# ---
+# ###VPA Autoscaler### 
+# apiVersion: autoscaling.k8s.io/v1
+# kind: VerticalPodAutoscaler
+# metadata:
+ # name: fashion-mnist-edge1-vpa
+ # namespace: default
+# spec:
+ # targetRef:
+   # apiVersion: "apps/v1"
+   # kind: StatefulSet
+   # name: fashion-mnist-edge1
+ # updatePolicy:
+   # updateMode: "Auto"
+ # resourcePolicy:
+   # containerPolicies:
+   # - containerName: federated-learning-client    
+     # minAllowed:
+       # cpu: "1"
+       # memory: "1Gi"
+     # maxAllowed:
+       # cpu: "4"
+       # memory: "2Gi"
+
+# ---
+# ###VPA Autoscaler### 
+# apiVersion: autoscaling.k8s.io/v1
+# kind: VerticalPodAutoscaler
+# metadata:
+ # name: fashion-mnist-edge2-vpa
+ # namespace: default
+# spec:
+ # targetRef:
+   # apiVersion: "apps/v1"
+   # kind: StatefulSet
+   # name: fashion-mnist-edge2
+ # updatePolicy:
+   # updateMode: "Auto"
+ # resourcePolicy:
+   # containerPolicies:
+   # - containerName: federated-learning-client    
+     # minAllowed:
+       # cpu: "1"
+       # memory: "1Gi"
+     # maxAllowed:
+       # cpu: "2"
+       # memory: "2Gi"
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v2beta2 
+# kind: HorizontalPodAutoscaler
+# metadata:
+  # name: fashion-mnist-edge1
+  # namespace: default
+# spec:
+  # scaleTargetRef:
+    # apiVersion: apps/v1 
+    # kind: StatefulSet
+    # name: fashion-mnist-edge1
+  # minReplicas: 1
+  # maxReplicas: 4
+  # metrics: 
+  # - type: Resource
+    # resource:
+      # name: cpu #memory
+      # target:
+        # type: Utilization 
+        # averageUtilization: 120 #Must higher than the CPU request resources of FL pod
+  # behavior: 
+    # scaleDown:
+      # stabilizationWindowSeconds: 120
+      # policies:
+      # - type: Pods
+        # value: 5
+        # periodSeconds: 120
+      # selectPolicy: Min #Max
+      
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v2beta2 
+# kind: HorizontalPodAutoscaler
+# metadata:
+  # name: fashion-mnist-edge2
+  # namespace: default
+# spec:
+  # scaleTargetRef:
+    # apiVersion: apps/v1 
+    # kind: StatefulSet
+    # name: fashion-mnist-edge2
+  # minReplicas: 1
+  # maxReplicas: 4
+  # metrics: 
+  # - type: Resource
+    # resource:
+      # name: cpu #memory
+      # target:
+        # type: Utilization 
+        # averageUtilization: 120 #Must higher than the CPU request resources of FL pod
+  # behavior: 
+    # scaleDown:
+      # stabilizationWindowSeconds: 120
+      # policies:
+      # - type: Pods
+        # value: 5
+        # periodSeconds: 120
+      # selectPolicy: Min #Max
+    
+ 
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v1
+# kind: HorizontalPodAutoscaler
+# metadata:
+    # name: fashion-mnist-edge1
+    # namespace: default
+# spec:
+    # scaleTargetRef:
+        # apiVersion: apps/v1
+        # kind: Deployment
+        # name: fashion-mnist-edge1
+    # minReplicas: 1
+    # maxReplicas: 5
+    # targetCPUUtilizationPercentage: 120
+ 
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v1
+# kind: HorizontalPodAutoscaler
+# metadata:
+    # name: fashion-mnist-edge2
+    # namespace: default
+# spec:
+    # scaleTargetRef:
+        # apiVersion: apps/v1
+        # kind: Deployment
+        # name: fashion-mnist-edge2
+    # minReplicas: 1
+    # maxReplicas: 5
+    # targetCPUUtilizationPercentage: 120

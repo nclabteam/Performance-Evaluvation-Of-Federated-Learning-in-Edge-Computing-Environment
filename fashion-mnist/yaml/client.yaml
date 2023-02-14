@@ -1,0 +1,792 @@
+# ####EDGE 1 - POD#### 
+# apiVersion: v1
+# kind: Pod
+# metadata:
+    # name: fashion-mnist-edge1
+# spec:
+    # nodeName: edge1
+    # containers:
+      # - image: kubeedge/fashion-mnist-client:v1.0.0
+        # name: federated-learning-client
+        # args: ["--partition=0", "--clients=1000" , "--server_address=192.168.27.128:8888"]
+    # hostNetwork: true
+    # dnsPolicy: Default
+    # restartPolicy: Never
+
+# ---
+# ###EDGE 2 - POD####
+# apiVersion: v1
+# kind: Pod
+# metadata:
+    # name: fashion-mnist-edge2
+# spec:
+    # nodeName: edge2
+    # containers:
+      # - image: kubeedge/fashion-mnist-client:v1.0.0
+        # name: federated-learning-client
+        # args: ["--partition=2000", "--clients=4000" , "--server_address=192.168.27.128:8888"]
+    # hostNetwork: true
+    # dnsPolicy: Default
+    # restartPolicy: Never
+# ---
+#EDGE1 -  DEPLOYMENT####
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata: 
+    # name: fashion-mnist-edge1
+    # labels:
+        # app: federated-learning-client
+# spec:  
+    # selector:
+        # matchLabels:
+            # app: federated-learning-client
+    # replicas: 1
+    # template:
+        # metadata:
+            # labels:
+                # app: federated-learning-client
+        # spec: 
+            # nodeName: edge1
+            # containers:
+            # - name: federated-learning-client            
+              # image: kubeedge/fashion-mnist-client:v1.0.0
+              # resources:
+                # requests:
+                    # memory: "1Gi"
+                    # cpu: "1"
+                # limits:
+                    # memory: "2Gi"
+                    # cpu: "4"
+              # args: ["--partition=0", "--clients=60000" , "--server_address=192.168.27.128:8888"]
+            # hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            # dnsPolicy: Default
+# ---
+# ##EDGE2 - DEPLOYMENT####
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata: 
+    # name: fashion-mnist-edge2
+    # labels:
+        # app: federated-learning-client
+# spec:  
+    # selector:
+        # matchLabels:
+            # app: federated-learning-client
+    # replicas: 1
+    # template:
+        # metadata:
+            # labels:
+                # app: federated-learning-client
+        # spec: 
+            # nodeName: edge2
+            # containers:
+            # - name: federated-learning-client            
+              # image: kubeedge/fashion-mnist-client:v1.0.0 
+              # resources:
+                # requests:
+                    # memory: "1Gi"
+                    # cpu: "1" 
+                # limits:
+                    # memory: "2Gi"
+                    # cpu: "2"
+              # args: ["--partition=0", "--clients=60000" , "--server_address=192.168.27.128:8888"]
+            # hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            # dnsPolicy: Default
+#---
+#EDGE1 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: 
+    name: fashion-mnist-edge1
+    labels:
+        app: federated-learning-client
+spec:  
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"        
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec: 
+            terminationGracePeriodSeconds: 10
+            nodeName: edge1
+            containers:
+            - name: federated-learning-client            
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=0", "--end_index=4000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=0", "--end_index=12000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=0", "--end_index=4000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              args: ["--start_index=0", "--end_index=40000" , "--client_id=1", "--class_type=9","--data_type=IID","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=20000", "--end_index=30000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+
+              #args: ["--start_index=0", "--end_index=29000" , "--client_id=1", "--class_type=0","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              
+              #args: ["--start_index=0", "--end_index=21000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=3000" , "--client_id=1", "--class_type=0","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID21
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=0,1","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default        
+---
+#EDGE2 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge2
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge2
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=2", "--class_type=0","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=2", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=3000", "--end_index=7000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=12000", "--end_index=14000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=4000", "--end_index=8000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=14000", "--end_index=30000" , "--client_id=2", "--class_type=0","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=5000", "--end_index=14000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+              #args: ["--start_index=6000", "--end_index=30000" , "--client_id=2", "--class_type=1","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=3000", "--end_index=6000" , "--client_id=2", "--class_type=1","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=21000", "--end_index=22000" , "--client_id=2", "--class_type=1","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=1","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=2", "--class_type=0,1","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            # networks:
+                # customnetwork:
+                    # ipv4_address: 172.16.185.129
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+
+---
+##EDGE3 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge3
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge3
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=3", "--class_type=1","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=3", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=6000", "--end_index=10000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=14000", "--end_index=16000" , "--client_id=3", "--class_type=2","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=8000", "--end_index=11500" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              
+              #args: ["--start_index=2000", "--end_index=16000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=10000", "--end_index=18000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+
+              #args: ["--start_index=0", "--end_index=24000" , "--client_id=3", "--class_type=2","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=6000", "--end_index=9000" , "--client_id=3", "--class_type=2","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=22000", "--end_index=23000" , "--client_id=3", "--class_type=2","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=2","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=3", "--class_type=2,3","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+---
+##EDGE4 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge4
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge4
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=4", "--class_type=2","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=4", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=9000", "--end_index=13000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=16000", "--end_index=18000" , "--client_id=4", "--class_type=3","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=11500", "--end_index=15000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=0", "--end_index=12000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=18000", "--end_index=25000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+
+
+              #args: ["--start_index=7000", "--end_index=30000" , "--client_id=4", "--class_type=3","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=9000", "--end_index=12000" , "--client_id=4", "--class_type=3","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=23000", "--end_index=24000" , "--client_id=4", "--class_type=3","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=3","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=4", "--class_type=2,3","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+---
+#EDGE5 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge5
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge5
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=5", "--class_type=3","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=5", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=12000", "--end_index=16000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=18000", "--end_index=20000" , "--client_id=5", "--class_type=4","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=15000", "--end_index=18000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=20000", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=6000", "--end_index=12000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+
+              #args: ["--start_index=0", "--end_index=21000" , "--client_id=5", "--class_type=4","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=12000", "--end_index=15000" , "--client_id=5", "--class_type=4","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=24000", "--end_index=25000" , "--client_id=5", "--class_type=4","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=4","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=5", "--class_type=4,5","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+---
+##EDGE6 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge6
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge6
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=6", "--class_type=4","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=6", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=15000", "--end_index=19000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=20000", "--end_index=22000" , "--client_id=6", "--class_type=5","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=18000", "--end_index=21000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=18000", "--end_index=26000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=0", "--end_index=5000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+              #args: ["--start_index=0", "--end_index=14000" , "--client_id=6", "--class_type=5","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=15000", "--end_index=18000" , "--client_id=6", "--class_type=5","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=25000", "--end_index=26000" , "--client_id=6", "--class_type=5","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=5","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=6", "--class_type=4,5","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP  
+            dnsPolicy: Default
+---
+#EDGE7 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge7
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge7
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=7", "--class_type=5","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=7", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=18000", "--end_index=22000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=22000", "--end_index=24000" , "--client_id=7", "--class_type=6","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=21000", "--end_index=23500" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=24000", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=14000", "--end_index=18000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+
+              #args: ["--start_index=25000", "--end_index=30000" , "--client_id=7", "--class_type=6","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=18000", "--end_index=21000" , "--client_id=7", "--class_type=6","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=26000", "--end_index=27000" , "--client_id=7", "--class_type=6","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=6","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=7", "--class_type=6,7","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+---
+#EDGE8 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge8
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge8
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=8", "--class_type=6","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=8", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=21000", "--end_index=25000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=24000", "--end_index=26000" , "--client_id=8", "--class_type=7","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=23500", "--end_index=26000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=15000", "--end_index=19000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=27000", "--end_index=30000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+
+              #args: ["--start_index=20000", "--end_index=30000" , "--client_id=8", "--class_type=7","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=21000", "--end_index=24000" , "--client_id=8", "--class_type=7","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=27000", "--end_index=28000" , "--client_id=8", "--class_type=7","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=7","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=8", "--class_type=6,7","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+---
+# #EDGE9 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge9
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge9
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=9 ","--class_type=7","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=9", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=24000", "--end_index=28000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=26000", "--end_index=28000" , "--client_id=9", "--class_type=8","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=26000", "--end_index=28000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=26000", "--end_index=28000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=1000", "--end_index=3000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+              #args: ["--start_index=5000", "--end_index=12000" , "--client_id=9", "--class_type=8","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=24000", "--end_index=27000" , "--client_id=9", "--class_type=8","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=28000", "--end_index=29000" , "--client_id=10", "--class_type=8","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=1", "--class_type=8","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=9", "--class_type=8,9","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+---
+#EDGE10 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge10
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge10
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=10", "--class_type=8","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=26000", "--end_index=30000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=28000", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=28000", "--end_index=30000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=28000", "--end_index=29000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=0", "--end_index=1000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+
+              #args: ["--start_index=0", "--end_index=2000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=27000", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=29000", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=10", "--class_type=9","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=10", "--class_type=8,9","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+---
+#EDGE11 - STATEFULSET####
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: fashion-mnist-edge11
+    labels:
+        app: federated-learning-client
+spec:
+    selector:
+        matchLabels:
+            app: federated-learning-client
+    serviceName: "federated-learning-svc"
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: federated-learning-client
+        spec:
+            terminationGracePeriodSeconds: 10
+            nodeName: edge11
+            containers:
+            - name: federated-learning-client
+              image: flower/fashion-mnist-client:v1.0.9
+              resources:
+                requests:
+                    memory: "1Gi"
+                    cpu: "2" 
+                limits: 
+                    memory: "4Gi"
+                    cpu: "2"
+              args: ["--start_index=14000", "--end_index=30000" , "--client_id=11", "--class_type=9","--data_type=1class-non-IID-slight","--server_address=192.168.1.4:30009"]
+              #args: ["--start_index=0", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1a
+              #args: ["--start_index=26000", "--end_index=30000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 1b
+              #args: ["--start_index=28000", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance1
+              #args: ["--start_index=28000", "--end_index=30000" , "--client_id=1", "--class_type=0","--data_type=IID", "--server_address=192.168.1.4:30009"] #For 2a-Imbalance2
+              #args: ["--start_index=28000", "--end_index=29000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance3
+              #args: ["--start_index=0", "--end_index=1000" , "--client_id=1", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For 2b-Imbalance4
+
+
+              #args: ["--start_index=0", "--end_index=2000" , "--client_id=10", "--class_type=9","--data_type=IID", "--top_selection=100","--server_address=192.168.1.4:30009"] #For Imbalance2-statistics
+              #args: ["--start_index=27000", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio 6000 samples for each
+              
+              #args: ["--start_index=29000", "--end_index=30000" , "--client_id=10", "--class_type=9","--data_type=IID", "--server_address=192.168.1.4:30009"] #For Ratio: 21-1-1-1-1
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=10", "--class_type=9","--data_type=1class-non-IID", "--server_address=192.168.1.4:30009"] #1class-non_IID
+              #args: ["--start_index=0", "--end_index=6000" , "--client_id=10", "--class_type=8,9","--data_type=2class-non-IID", "--server_address=192.168.1.4:30009"] #2class-non_IID
+            hostNetwork: true #false: provide IP for cloud pod, true: use its cloud IP
+            dnsPolicy: Default
+#---
+# ###VPA Autoscaler### 
+# apiVersion: autoscaling.k8s.io/v1
+# kind: VerticalPodAutoscaler
+# metadata:
+ # name: fashion-mnist-edge1-vpa
+ # namespace: default
+# spec:
+ # targetRef:
+   # apiVersion: "apps/v1"
+   # kind: StatefulSet
+   # name: fashion-mnist-edge1
+ # updatePolicy:
+   # updateMode: "Auto"
+ # resourcePolicy:
+   # containerPolicies:
+   # - containerName: federated-learning-client    
+     # minAllowed:
+       # cpu: "1"
+       # memory: "1Gi"
+     # maxAllowed:
+       # cpu: "4"
+       # memory: "2Gi"
+
+# ---
+# ###VPA Autoscaler### 
+# apiVersion: autoscaling.k8s.io/v1
+# kind: VerticalPodAutoscaler
+# metadata:
+ # name: fashion-mnist-edge2-vpa
+ # namespace: default
+# spec:
+ # targetRef:
+   # apiVersion: "apps/v1"
+   # kind: StatefulSet
+   # name: fashion-mnist-edge2
+ # updatePolicy:
+   # updateMode: "Auto"
+ # resourcePolicy:
+   # containerPolicies:
+   # - containerName: federated-learning-client    
+     # minAllowed:
+       # cpu: "1"
+       # memory: "1Gi"
+     # maxAllowed:
+       # cpu: "2"
+       # memory: "2Gi"
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v2beta2 
+# kind: HorizontalPodAutoscaler
+# metadata:
+  # name: fashion-mnist-edge1
+  # namespace: default
+# spec:
+  # scaleTargetRef:
+    # apiVersion: apps/v1 
+    # kind: StatefulSet
+    # name: fashion-mnist-edge1
+  # minReplicas: 1
+  # maxReplicas: 4
+  # metrics: 
+  # - type: Resource
+    # resource:
+      # name: cpu #memory
+      # target:
+        # type: Utilization 
+        # averageUtilization: 130 #Must higher than the CPU request resources of FL pod
+  # behavior: 
+    # scaleDown:
+      # stabilizationWindowSeconds: 120
+      # policies:
+      # - type: Pods
+        # value: 5
+        # periodSeconds: 120
+      # selectPolicy: Min #Max
+      
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v2beta2 
+# kind: HorizontalPodAutoscaler
+# metadata:
+  # name: fashion-mnist-edge2
+  # namespace: default
+# spec:
+  # scaleTargetRef:
+    # apiVersion: apps/v1 
+    # kind: StatefulSet
+    # name: fashion-mnist-edge2
+  # minReplicas: 1
+  # maxReplicas: 4
+  # metrics: 
+  # - type: Resource
+    # resource:
+      # name: cpu #memory
+      # target:
+        # type: Utilization 
+        # averageUtilization: 130 #Must higher than the CPU request resources of FL pod
+  # behavior: 
+    # scaleDown:
+      # stabilizationWindowSeconds: 120
+      # policies:
+      # - type: Pods
+        # value: 5
+        # periodSeconds: 120
+      # selectPolicy: Min #Max
+    
+
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v2beta2 
+# kind: HorizontalPodAutoscaler
+# metadata:
+  # name: fashion-mnist-edge3
+  # namespace: default
+# spec:
+  # scaleTargetRef:
+    # apiVersion: apps/v1 
+    # kind: StatefulSet
+    # name: fashion-mnist-edge3
+  # minReplicas: 1
+  # maxReplicas: 4
+  # metrics: 
+  # - type: Resource
+    # resource:
+      # name: cpu #memory
+      # target:
+        # type: Utilization 
+        # averageUtilization: 130 #Must higher than the CPU request resources of FL pod
+  # behavior: 
+    # scaleDown:
+      # stabilizationWindowSeconds: 120
+      # policies:
+      # - type: Pods
+        # value: 5
+        # periodSeconds: 120
+      # selectPolicy: Min #Max
+ 
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v1
+# kind: HorizontalPodAutoscaler
+# metadata:
+    # name: fashion-mnist-edge1
+    # namespace: default
+# spec:
+    # scaleTargetRef:
+        # apiVersion: apps/v1
+        # kind: Deployment
+        # name: fashion-mnist-edge1
+    # minReplicas: 1
+    # maxReplicas: 5
+    # targetCPUUtilizationPercentage: 120
+ 
+# ---
+# ###HPA AutoScaler###
+# apiVersion: autoscaling/v1
+# kind: HorizontalPodAutoscaler
+# metadata:
+    # name: fashion-mnist-edge2
+    # namespace: default
+# spec:
+    # scaleTargetRef:
+        # apiVersion: apps/v1
+        # kind: Deployment
+        # name: fashion-mnist-edge2
+    # minReplicas: 1
+    # maxReplicas: 5
+    # targetCPUUtilizationPercentage: 120

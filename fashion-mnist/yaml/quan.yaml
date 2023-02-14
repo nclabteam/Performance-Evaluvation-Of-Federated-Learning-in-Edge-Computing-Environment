@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-example1
+  namespace: kubeedge
+spec:
+  selector:
+    matchLabels:
+      app: app-example1
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-example1
+    spec:
+      containers:
+      - name: app-example1
+        image: quangminh1218/minh-proxy:latest
+        resources:
+          requests:
+            memory: "16Mi"
+            cpu: "10m"
+          limits:
+            memory: "250Mi"
+            cpu: "200m"
+        ports:
+        - containerPort: 8080
+      nodeName: edge1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quan-svc
+  namespace: kubeedge
+spec:
+  selector:
+    app: app-example1
+  ports:
+     -  port: 12346
+        protocol: TCP
+        targetPort: 8080
