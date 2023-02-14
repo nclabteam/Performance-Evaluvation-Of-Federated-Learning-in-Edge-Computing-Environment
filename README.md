@@ -18,7 +18,7 @@ This code is developed to run Federated Learning application on Kubernetes versi
   
 * Step 5: Config the cloud.yaml and client.yaml based on the number of nodes and the input parameters.
  
-   `cd cd Performance-Evaluvation-Of-Federated-Learning-in-Edge-Computing-Environment/fashion-mnist/yaml`
+   `cd Performance-Evaluvation-Of-Federated-Learning-in-Edge-Computing-Environment/fashion-mnist/yaml`
 
 * Step 6: Deploy the Federated Learning application
   
