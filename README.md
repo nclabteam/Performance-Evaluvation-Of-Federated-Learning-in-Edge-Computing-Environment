@@ -2,7 +2,7 @@
 
 This code is developed to run Federated Learning application on Kubernetes version 1.21.0 and KubeEdge 1.10.0
 
-* Step 1: Follow these two tutorial files to install Docker, Kubernets, KubeEdge and setup Federated Learning application in cloud node and edge node: TUTORIAL ON SETUP KUBEEDGE ENVIRONMENT ON CLOUD AND EDGE-1.pdf
+* Step 1: Follow these two tutorial files to install Docker, Kubernets, KubeEdge and setup Federated Learning application in cloud node and edge node: TUTORIAL ON SETUP KUBEEDGE ENVIRONMENT ON CLOUD AND EDGE-1.pdf & Federated Learning Docker Tutorial-1.pdf
 
 * Step 2: Clone the repository by pasting the below command in the terminal.
   ````
