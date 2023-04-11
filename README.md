@@ -33,3 +33,16 @@ This code is developed to run Federated Learning application on Kubernetes versi
   ````
   ./stop-federated.sh
   ````
+  
+  If you find this useful please cite us:
+  ````
+  @ARTICLE{10086519,
+  author={Quan, Pham Khanh and Kundroo, Majid and Kim, Taehong},
+  journal={IEEE Access}, 
+  title={Experimental Evaluation and Analysis of Federated Learning in Edge Computing Environments}, 
+  year={2023},
+  volume={11},
+  number={},
+  pages={33628-33639},
+  doi={10.1109/ACCESS.2023.3262945}}
+  ````
